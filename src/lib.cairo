@@ -6,7 +6,7 @@ mod tests;
 enum DynamicInput {
     Hardcoded: felt252,
     // call, output call
-    Reference: (felt252, felt252),
+    Reference: (usize, usize),
 }
 
 #[derive(Drop, Serde)]
