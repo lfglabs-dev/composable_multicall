@@ -1,0 +1,12 @@
+[package]
+name = "composable_multicall"
+authors = ["th0rgal <thomas@starknet.id>"]
+version = "0.1.0"
+
+[dependencies]
+starknet = "2.3.1"
+
+[[target.starknet-contract]]
+sierra = true
+casm = true
+casm-add-pythonic-hints = true
