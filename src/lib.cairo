@@ -11,8 +11,8 @@ enum DynamicInput {
 
 #[derive(Drop, Serde)]
 struct DynamicCall {
-    to: starknet::ContractAddress,
-    selector: felt252,
+    to: DynamicInput,
+    selector: DynamicInput,
     calldata: Array<DynamicInput>
 }
 

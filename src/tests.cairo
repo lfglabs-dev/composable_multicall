@@ -14,6 +14,7 @@ trait IDummy<TState> {
     fn multiply(self: @TState, x: felt252, y: felt252) -> felt252;
     fn add(self: @TState, x: felt252, y: felt252) -> felt252;
     fn one(self: @TState) -> felt252;
+    fn foo(self: @TState) -> (ContractAddress, felt252);
 }
 
 #[starknet::contract]
@@ -42,12 +43,21 @@ mod DummyContract {
         fn one(self: @ContractState) -> felt252 {
             1
         }
+        // 0x03a05e9d201ce7db4a6dc92496470b4185e4669f16a53d77f908a039afaf42d4
+        fn foo(self: @ContractState) -> (ContractAddress, felt252) {
+            (
+                starknet::get_contract_address(),
+                0x03dc111d7c3ad1df9806ce1e8eb4f55f57dba117339c545e7593d1f6c3b02662
+            )
+        }
     }
 }
 
 const ONE_SELECTOR: felt252 = 0x03dc111d7c3ad1df9806ce1e8eb4f55f57dba117339c545e7593d1f6c3b02662;
 const ADD_SELECTOR: felt252 = 0x035a8bb8492337e79bdc674d6f31ac448f8017e26cc7bfe3144fb5d886fe5369;
 const MUL_SELECTOR: felt252 = 0x039674cadb16109ec414e371cc8f04eb60a540c52d4880cadb49dfafb8d79797;
+const FOO_SELECTOR: felt252 = 0x01b1a0649752af1b28b3dc29a1556eee781e4a4c3a1f7f53f90fa834de098c4d;
+
 
 fn deploy() -> (IComposableMulticallDispatcher, IDummyDispatcher) {
     let (cm_address, _) = starknet::deploy_syscall(
@@ -74,8 +84,6 @@ fn test_dummy_contract() {
     assert(dummy.add(dummy.multiply(2, 3), dummy.one()) == 7, 'invalid result');
 }
 
-use debug::PrintTrait;
-
 #[test]
 #[available_gas(2000000000)]
 fn test_simple_call() {
@@ -86,7 +94,9 @@ fn test_simple_call() {
         .aggregate(
             array![
                 DynamicCall {
-                    to: dummy.contract_address, selector: ONE_SELECTOR, calldata: array![]
+                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicInput::Hardcoded(ONE_SELECTOR),
+                    calldata: array![]
                 }
             ]
         );
@@ -96,6 +106,43 @@ fn test_simple_call() {
     assert(first_call_result.len() == 1, 'Invalid 1st result length');
     assert(*first_call_result.at(0) == 1, 'Invalid 1st result value');
 }
+
+use debug::PrintTrait;
+
+#[test]
+#[available_gas(2000000000)]
+fn test_dynamic_function() {
+    // [ (foo())() ]
+
+    let (multicall, dummy) = deploy();
+    let result = multicall
+        .aggregate(
+            array![
+                DynamicCall {
+                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicInput::Hardcoded(FOO_SELECTOR),
+                    calldata: array![]
+                },
+                DynamicCall {
+                    to: DynamicInput::Reference((0, 0)),
+                    selector: DynamicInput::Reference((0, 1)),
+                    calldata: array![]
+                }
+            ]
+        );
+
+    assert(result.len() == 2, 'Invalid result length');
+    let first_call_result = *result.at(0);
+    assert(first_call_result.len() == 2, 'Invalid 1st result length');
+    assert(
+        *first_call_result.at(0) == dummy.contract_address.into(), 'Invalid 1st result 1st value'
+    );
+    assert(*first_call_result.at(1) == ONE_SELECTOR, 'Invalid 1st result 2nd value');
+    let second_call_result = *result.at(1);
+    assert(second_call_result.len() == 1, 'Invalid 2nd result length');
+    assert(*second_call_result.at(0) == 1, 'Invalid 2nd result 1st value');
+}
+
 
 #[test]
 #[available_gas(2000000000)]
@@ -107,11 +154,13 @@ fn test_chained_calls() {
         .aggregate(
             array![
                 DynamicCall {
-                    to: dummy.contract_address, selector: ONE_SELECTOR, calldata: array![]
+                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicInput::Hardcoded(ONE_SELECTOR),
+                    calldata: array![]
                 },
                 DynamicCall {
-                    to: dummy.contract_address,
-                    selector: ADD_SELECTOR,
+                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicInput::Hardcoded(ADD_SELECTOR),
                     calldata: array![DynamicInput::Hardcoded(1), DynamicInput::Hardcoded(2)]
                 }
             ]
@@ -137,16 +186,18 @@ fn test_composed_calls() {
         .aggregate(
             array![
                 DynamicCall {
-                    to: dummy.contract_address, selector: ONE_SELECTOR, calldata: array![]
+                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicInput::Hardcoded(ONE_SELECTOR),
+                    calldata: array![]
                 },
                 DynamicCall {
-                    to: dummy.contract_address,
-                    selector: ADD_SELECTOR,
+                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicInput::Hardcoded(ADD_SELECTOR),
                     calldata: array![DynamicInput::Reference((0, 0)), DynamicInput::Hardcoded(2)]
                 },
                 DynamicCall {
-                    to: dummy.contract_address,
-                    selector: MUL_SELECTOR,
+                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicInput::Hardcoded(MUL_SELECTOR),
                     calldata: array![DynamicInput::Reference((1, 0)), DynamicInput::Hardcoded(2)]
                 }
             ]

@@ -1,5 +1,7 @@
 #[starknet::contract]
 mod ComposableMulticall {
+    use core::option::OptionTrait;
+    use core::traits::TryInto;
     use core::array::ArrayTrait;
     use core::array::SpanTrait;
     use starknet::ContractAddress;
@@ -20,6 +22,21 @@ mod ComposableMulticall {
         }
     }
 
+    fn build_input(
+        call_outputs: @Array<Span<felt252>>, mut dynamic_input: @DynamicInput
+    ) -> felt252 {
+        match dynamic_input {
+            DynamicInput::Hardcoded(value) => { *value },
+            DynamicInput::Reference((
+                call_id, felt_id
+            )) => {
+                let call_output = *call_outputs.at(*call_id);
+                let felt = call_output.at(*felt_id);
+                *felt
+            }
+        }
+    }
+
     fn build_inputs(
         call_outputs: @Array<Span<felt252>>, mut dynamic_inputs: Span::<DynamicInput>
     ) -> Array::<felt252> {
@@ -27,16 +44,7 @@ mod ComposableMulticall {
         loop {
             match dynamic_inputs.pop_front() {
                 Option::Some(dynamic_input) => {
-                    match dynamic_input {
-                        DynamicInput::Hardcoded(value) => { output.append(*value); },
-                        DynamicInput::Reference((
-                            call_id, felt_id
-                        )) => {
-                            let call_output = *call_outputs.at(*call_id);
-                            let felt = call_output.at(*felt_id);
-                            output.append(*felt);
-                        }
-                    }
+                    output.append(build_input(call_outputs, dynamic_input));
                 },
                 Option::None => { break; }
             }
@@ -51,7 +59,9 @@ mod ComposableMulticall {
             match calls.pop_front() {
                 Option::Some(call) => {
                     match call_contract_syscall(
-                        *call.to, *call.selector, build_inputs(@result, call.calldata.span()).span()
+                        build_input(@result, call.to).try_into().unwrap(),
+                        build_input(@result, call.selector),
+                        build_inputs(@result, call.calldata.span()).span()
                     ) {
                         Result::Ok(retdata) => {
                             result.append(retdata);
