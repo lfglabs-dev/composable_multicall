@@ -14,6 +14,7 @@ enum DynamicCalldata {
     Hardcoded: felt252,
     // call, output call
     Reference: (usize, usize),
+    ArrayReference: (usize, usize),
 }
 
 #[derive(Drop, Serde)]

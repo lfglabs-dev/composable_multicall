@@ -52,6 +52,22 @@ mod ComposableMulticall {
                             let call_output = *call_outputs.at(*call_id);
                             let felt = call_output.at(*felt_id);
                             output.append(*felt);
+                        },
+                        DynamicCalldata::ArrayReference((
+                            call_id, felt_id
+                        )) => {
+                            let call_output = *call_outputs.at(*call_id);
+                            let arr_length = *call_output.at(*felt_id);
+                            output.append(arr_length);
+                            let felt_array_stop = *felt_id + (arr_length).try_into().unwrap();
+                            let mut i = *felt_id;
+                            loop {
+                                if i == felt_array_stop {
+                                    break;
+                                };
+                                i += 1;
+                                output.append(*call_output.at(i));
+                            }
                         }
                     };
                 },
