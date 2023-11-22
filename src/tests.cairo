@@ -6,7 +6,7 @@ use starknet::{
     SyscallResultTrait
 };
 use composable_multicall::{
-    DynamicCall, DynamicCalldata, DynamicFelt, contract::ComposableMulticall,
+    Execution, DynamicCall, DynamicCalldata, DynamicFelt, contract::ComposableMulticall,
     IComposableMulticallDispatcher
 };
 
@@ -115,6 +115,7 @@ fn test_simple_call() {
         .aggregate(
             array![
                 DynamicCall {
+                    execution: Execution::Static,
                     to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
                     selector: DynamicFelt::Hardcoded(ONE_SELECTOR),
                     calldata: array![]
@@ -138,11 +139,13 @@ fn test_composing_arrays() {
         .aggregate(
             array![
                 DynamicCall {
+                    execution: Execution::Static,
                     to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
                     selector: DynamicFelt::Hardcoded(ARR_SELECTOR),
                     calldata: array![]
                 },
                 DynamicCall {
+                    execution: Execution::Static,
                     to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
                     selector: DynamicFelt::Hardcoded(SUM_SELECTOR),
                     calldata: array![DynamicCalldata::ArrayReference((0, 1))]
@@ -169,11 +172,13 @@ fn test_dynamic_function() {
         .aggregate(
             array![
                 DynamicCall {
+                    execution: Execution::Static,
                     to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
                     selector: DynamicFelt::Hardcoded(FOO_SELECTOR),
                     calldata: array![]
                 },
                 DynamicCall {
+                    execution: Execution::Static,
                     to: DynamicFelt::Reference((0, 0)),
                     selector: DynamicFelt::Reference((0, 1)),
                     calldata: array![]
@@ -193,6 +198,41 @@ fn test_dynamic_function() {
     assert(*second_call_result.at(0) == 1, 'Invalid 2nd result 1st value');
 }
 
+use debug::PrintTrait;
+
+#[test]
+#[available_gas(2000000000)]
+fn test_conditional_execution() {
+    // [ if one() == 1 then one() ]
+
+    let (multicall, dummy) = deploy();
+    let result = multicall
+        .aggregate(
+            array![
+                DynamicCall {
+                    execution: Execution::Static,
+                    to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicFelt::Hardcoded(ONE_SELECTOR),
+                    calldata: array![]
+                },
+                DynamicCall {
+                    execution: Execution::IfEqual((0, 0, 1)),
+                    to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicFelt::Hardcoded(ONE_SELECTOR),
+                    calldata: array![]
+                }
+            ]
+        );
+
+    assert(result.len() == 2, 'Invalid result length');
+    let first_call_result = *result.at(0);
+    assert(first_call_result.len() == 1, 'Invalid 1st result length');
+    assert(*first_call_result.at(0) == 1, 'Invalid 1st result 1st value');
+    let second_call_result = *result.at(1);
+    assert(second_call_result.len() == 1, 'Invalid 2nd result length');
+    assert(*second_call_result.at(0) == 1, 'Invalid 2nd result 1st value');
+}
+
 
 #[test]
 #[available_gas(2000000000)]
@@ -204,11 +244,13 @@ fn test_chained_calls() {
         .aggregate(
             array![
                 DynamicCall {
+                    execution: Execution::Static,
                     to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
                     selector: DynamicFelt::Hardcoded(ONE_SELECTOR),
                     calldata: array![]
                 },
                 DynamicCall {
+                    execution: Execution::Static,
                     to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
                     selector: DynamicFelt::Hardcoded(ADD_SELECTOR),
                     calldata: array![DynamicCalldata::Hardcoded(1), DynamicCalldata::Hardcoded(2)]
@@ -236,11 +278,13 @@ fn test_composed_calls() {
         .aggregate(
             array![
                 DynamicCall {
+                    execution: Execution::Static,
                     to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
                     selector: DynamicFelt::Hardcoded(ONE_SELECTOR),
                     calldata: array![]
                 },
                 DynamicCall {
+                    execution: Execution::Static,
                     to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
                     selector: DynamicFelt::Hardcoded(ADD_SELECTOR),
                     calldata: array![
@@ -248,6 +292,7 @@ fn test_composed_calls() {
                     ]
                 },
                 DynamicCall {
+                    execution: Execution::Static,
                     to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
                     selector: DynamicFelt::Hardcoded(MUL_SELECTOR),
                     calldata: array![

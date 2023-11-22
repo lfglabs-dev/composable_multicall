@@ -6,7 +6,9 @@ mod ComposableMulticall {
     use core::array::SpanTrait;
     use starknet::ContractAddress;
     use starknet::{get_caller_address, get_contract_address};
-    use composable_multicall::{IComposableMulticall, DynamicCall, DynamicFelt, DynamicCalldata};
+    use composable_multicall::{
+        IComposableMulticall, DynamicCall, Execution, DynamicFelt, DynamicCalldata
+    };
     use starknet::call_contract_syscall;
 
     #[storage]
@@ -77,12 +79,34 @@ mod ComposableMulticall {
         output
     }
 
+
     fn execute_multicall(mut calls: Span<DynamicCall>) -> Array<Span<felt252>> {
         let mut result: Array<Span<felt252>> = ArrayTrait::new();
         let mut idx = 0;
         loop {
+            // todo: remove in Cairo 2.4.0
+            let snapped_result = @result;
             match calls.pop_front() {
                 Option::Some(call) => {
+                    match call.execution {
+                        Execution::Static => {},
+                        Execution::IfEqual((
+                            call_id, felt_id, value
+                        )) => {
+                            // if specified output felt is different from specified value, we skip that call
+                            if *(*snapped_result.at(*call_id)).at(*felt_id) != *value {
+                                continue;
+                            }
+                        },
+                        Execution::IfNotEqual((
+                            call_id, felt_id, value
+                        )) => {
+                            // if specified output felt equals the specified value, we skip that call
+                            if *(*snapped_result.at(*call_id)).at(*felt_id) == *value {
+                                continue;
+                            }
+                        }
+                    };
                     match call_contract_syscall(
                         build_input(@result, call.to).try_into().unwrap(),
                         build_input(@result, call.selector),
@@ -104,7 +128,7 @@ mod ComposableMulticall {
                             };
                             panic(data);
                         },
-                    }
+                    };
                 },
                 Option::None(_) => { break; },
             };
