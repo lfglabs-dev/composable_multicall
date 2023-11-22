@@ -79,10 +79,13 @@ mod ComposableMulticall {
         output
     }
 
+
     fn execute_multicall(mut calls: Span<DynamicCall>) -> Array<Span<felt252>> {
         let mut result: Array<Span<felt252>> = ArrayTrait::new();
         let mut idx = 0;
         loop {
+            // todo: remove in Cairo 2.4.0
+            let snapped_result = @result;
             match calls.pop_front() {
                 Option::Some(call) => {
                     match call.execution {
@@ -91,15 +94,15 @@ mod ComposableMulticall {
                             call_id, felt_id, value
                         )) => {
                             // if specified output felt is different from specified value, we skip that call
-                            if *(*result.at(*call_id)).at(*felt_id) != *value {
+                            if *(*snapped_result.at(*call_id)).at(*felt_id) != *value {
                                 continue;
-                            };
+                            }
                         },
                         Execution::IfNotEqual((
                             call_id, felt_id, value
                         )) => {
                             // if specified output felt equals the specified value, we skip that call
-                            if (*result.at(*call_id)).at(*felt_id) == value {
+                            if *(*snapped_result.at(*call_id)).at(*felt_id) == *value {
                                 continue;
                             }
                         }
