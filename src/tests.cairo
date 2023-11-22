@@ -203,7 +203,7 @@ use debug::PrintTrait;
 #[test]
 #[available_gas(2000000000)]
 fn test_conditional_execution() {
-    // [ if one() then one() ]
+    // [ if one() == 1 then one() ]
 
     let (multicall, dummy) = deploy();
     let result = multicall
