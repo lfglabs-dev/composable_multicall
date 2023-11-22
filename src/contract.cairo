@@ -6,7 +6,9 @@ mod ComposableMulticall {
     use core::array::SpanTrait;
     use starknet::ContractAddress;
     use starknet::{get_caller_address, get_contract_address};
-    use composable_multicall::{IComposableMulticall, DynamicCall, DynamicFelt, DynamicCalldata};
+    use composable_multicall::{
+        IComposableMulticall, DynamicCall, Execution, DynamicFelt, DynamicCalldata
+    };
     use starknet::call_contract_syscall;
 
     #[storage]
@@ -83,6 +85,25 @@ mod ComposableMulticall {
         loop {
             match calls.pop_front() {
                 Option::Some(call) => {
+                    match call.execution {
+                        Execution::Static => {},
+                        Execution::IfEqual((
+                            call_id, felt_id, value
+                        )) => {
+                            // if specified output felt is different from specified value, we skip that call
+                            if *(*result.at(*call_id)).at(*felt_id) != *value {
+                                continue;
+                            };
+                        },
+                        Execution::IfNotEqual((
+                            call_id, felt_id, value
+                        )) => {
+                            // if specified output felt equals the specified value, we skip that call
+                            if (*result.at(*call_id)).at(*felt_id) == value {
+                                continue;
+                            }
+                        }
+                    };
                     match call_contract_syscall(
                         build_input(@result, call.to).try_into().unwrap(),
                         build_input(@result, call.selector),
@@ -104,7 +125,7 @@ mod ComposableMulticall {
                             };
                             panic(data);
                         },
-                    }
+                    };
                 },
                 Option::None(_) => { break; },
             };

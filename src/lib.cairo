@@ -3,6 +3,13 @@ mod contract;
 mod tests;
 
 #[derive(Debug, Drop, Serde)]
+enum Execution {
+    Static,
+    IfEqual: (usize, usize, felt252),
+    IfNotEqual: (usize, usize, felt252),
+}
+
+#[derive(Debug, Drop, Serde)]
 enum DynamicFelt {
     Hardcoded: felt252,
     // call, output call
@@ -19,6 +26,7 @@ enum DynamicCalldata {
 
 #[derive(Drop, Serde)]
 struct DynamicCall {
+    execution: Execution,
     to: DynamicFelt,
     selector: DynamicFelt,
     calldata: Array<DynamicCalldata>
