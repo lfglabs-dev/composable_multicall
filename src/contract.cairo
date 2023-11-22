@@ -6,7 +6,7 @@ mod ComposableMulticall {
     use core::array::SpanTrait;
     use starknet::ContractAddress;
     use starknet::{get_caller_address, get_contract_address};
-    use composable_multicall::{IComposableMulticall, DynamicCall, DynamicInput};
+    use composable_multicall::{IComposableMulticall, DynamicCall, DynamicFelt, DynamicCalldata};
     use starknet::call_contract_syscall;
 
     #[storage]
@@ -23,11 +23,11 @@ mod ComposableMulticall {
     }
 
     fn build_input(
-        call_outputs: @Array<Span<felt252>>, mut dynamic_input: @DynamicInput
+        call_outputs: @Array<Span<felt252>>, mut dynamic_input: @DynamicFelt
     ) -> felt252 {
         match dynamic_input {
-            DynamicInput::Hardcoded(value) => { *value },
-            DynamicInput::Reference((
+            DynamicFelt::Hardcoded(value) => { *value },
+            DynamicFelt::Reference((
                 call_id, felt_id
             )) => {
                 let call_output = *call_outputs.at(*call_id);
@@ -38,13 +38,22 @@ mod ComposableMulticall {
     }
 
     fn build_inputs(
-        call_outputs: @Array<Span<felt252>>, mut dynamic_inputs: Span::<DynamicInput>
+        call_outputs: @Array<Span<felt252>>, mut dynamic_inputs: Span::<DynamicCalldata>
     ) -> Array::<felt252> {
         let mut output: Array<felt252> = Default::default();
         loop {
             match dynamic_inputs.pop_front() {
                 Option::Some(dynamic_input) => {
-                    output.append(build_input(call_outputs, dynamic_input));
+                    match dynamic_input {
+                        DynamicCalldata::Hardcoded(value) => { output.append(*value); },
+                        DynamicCalldata::Reference((
+                            call_id, felt_id
+                        )) => {
+                            let call_output = *call_outputs.at(*call_id);
+                            let felt = call_output.at(*felt_id);
+                            output.append(*felt);
+                        }
+                    };
                 },
                 Option::None => { break; }
             }
@@ -71,14 +80,12 @@ mod ComposableMulticall {
                             let mut data = ArrayTrait::new();
                             data.append('starknetid/multicall-failed');
                             data.append(idx);
-
                             loop {
                                 match revert_reason.pop_front() {
                                     Option::Some(item) => { data.append(item); },
                                     Option::None(()) => { break; },
                                 };
                             };
-
                             panic(data);
                         },
                     }

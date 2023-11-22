@@ -6,7 +6,7 @@ use starknet::{
     SyscallResultTrait
 };
 use composable_multicall::{
-    DynamicCall, DynamicInput, contract::ComposableMulticall, IComposableMulticallDispatcher
+    DynamicCall, DynamicCalldata, DynamicFelt, contract::ComposableMulticall, IComposableMulticallDispatcher
 };
 
 #[starknet::interface]
@@ -94,8 +94,8 @@ fn test_simple_call() {
         .aggregate(
             array![
                 DynamicCall {
-                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
-                    selector: DynamicInput::Hardcoded(ONE_SELECTOR),
+                    to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicFelt::Hardcoded(ONE_SELECTOR),
                     calldata: array![]
                 }
             ]
@@ -119,13 +119,13 @@ fn test_dynamic_function() {
         .aggregate(
             array![
                 DynamicCall {
-                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
-                    selector: DynamicInput::Hardcoded(FOO_SELECTOR),
+                    to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicFelt::Hardcoded(FOO_SELECTOR),
                     calldata: array![]
                 },
                 DynamicCall {
-                    to: DynamicInput::Reference((0, 0)),
-                    selector: DynamicInput::Reference((0, 1)),
+                    to: DynamicFelt::Reference((0, 0)),
+                    selector: DynamicFelt::Reference((0, 1)),
                     calldata: array![]
                 }
             ]
@@ -154,14 +154,14 @@ fn test_chained_calls() {
         .aggregate(
             array![
                 DynamicCall {
-                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
-                    selector: DynamicInput::Hardcoded(ONE_SELECTOR),
+                    to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicFelt::Hardcoded(ONE_SELECTOR),
                     calldata: array![]
                 },
                 DynamicCall {
-                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
-                    selector: DynamicInput::Hardcoded(ADD_SELECTOR),
-                    calldata: array![DynamicInput::Hardcoded(1), DynamicInput::Hardcoded(2)]
+                    to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicFelt::Hardcoded(ADD_SELECTOR),
+                    calldata: array![DynamicCalldata::Hardcoded(1), DynamicCalldata::Hardcoded(2)]
                 }
             ]
         );
@@ -186,19 +186,19 @@ fn test_composed_calls() {
         .aggregate(
             array![
                 DynamicCall {
-                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
-                    selector: DynamicInput::Hardcoded(ONE_SELECTOR),
+                    to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicFelt::Hardcoded(ONE_SELECTOR),
                     calldata: array![]
                 },
                 DynamicCall {
-                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
-                    selector: DynamicInput::Hardcoded(ADD_SELECTOR),
-                    calldata: array![DynamicInput::Reference((0, 0)), DynamicInput::Hardcoded(2)]
+                    to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicFelt::Hardcoded(ADD_SELECTOR),
+                    calldata: array![DynamicCalldata::Reference((0, 0)), DynamicCalldata::Hardcoded(2)]
                 },
                 DynamicCall {
-                    to: DynamicInput::Hardcoded(dummy.contract_address.into()),
-                    selector: DynamicInput::Hardcoded(MUL_SELECTOR),
-                    calldata: array![DynamicInput::Reference((1, 0)), DynamicInput::Hardcoded(2)]
+                    to: DynamicFelt::Hardcoded(dummy.contract_address.into()),
+                    selector: DynamicFelt::Hardcoded(MUL_SELECTOR),
+                    calldata: array![DynamicCalldata::Reference((1, 0)), DynamicCalldata::Hardcoded(2)]
                 }
             ]
         );

@@ -3,7 +3,14 @@ mod contract;
 mod tests;
 
 #[derive(Debug, Drop, Serde)]
-enum DynamicInput {
+enum DynamicFelt {
+    Hardcoded: felt252,
+    // call, output call
+    Reference: (usize, usize),
+}
+
+#[derive(Debug, Drop, Serde)]
+enum DynamicCalldata {
     Hardcoded: felt252,
     // call, output call
     Reference: (usize, usize),
@@ -11,9 +18,9 @@ enum DynamicInput {
 
 #[derive(Drop, Serde)]
 struct DynamicCall {
-    to: DynamicInput,
-    selector: DynamicInput,
-    calldata: Array<DynamicInput>
+    to: DynamicFelt,
+    selector: DynamicFelt,
+    calldata: Array<DynamicCalldata>
 }
 
 #[starknet::interface]
