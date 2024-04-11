@@ -33,7 +33,7 @@ mod DummyContract {
         blacklisted: LegacyMap<ContractAddress, bool>,
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl DummyImpl of super::IDummy<ContractState> {
         // 0x039674cadb16109ec414e371cc8f04eb60a540c52d4880cadb49dfafb8d79797
         fn multiply(self: @ContractState, x: felt252, y: felt252) -> felt252 {
