@@ -138,8 +138,16 @@ mod ComposableMulticall {
                                 Result::Ok(_) => {}
                             }
                         },
-                        Execution::Catch(call_id) => {},
-                        Execution::Then(call_id) => {},
+                        Execution::Catch(call_id) => {
+                            if results.at(*call_id).is_err() {
+                                continue;
+                            }
+                        },
+                        Execution::Then(call_id) => {
+                            if results.at(*call_id).is_ok() {
+                                continue;
+                            }
+                        },
                     };
                     let call_result = call_contract_syscall(
                         build_input(@results, call.to).try_into().unwrap(),
