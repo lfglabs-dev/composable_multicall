@@ -124,9 +124,15 @@ fn test_simple_call() {
         );
 
     assert(result.len() == 1, 'Invalid result length');
-    let first_call_result = *result.at(0);
-    assert(first_call_result.len() == 1, 'Invalid 1st result length');
-    assert(*first_call_result.at(0) == 1, 'Invalid 1st result value');
+
+    match result.at(0) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_first_call_result) => {
+            let first_call_result = *_first_call_result;
+            assert(first_call_result.len() == 1, 'Invalid 1st result length');
+            assert(*first_call_result.at(0) == 1, 'Invalid 1st result value');
+        }
+    }
 }
 
 #[test]
@@ -154,12 +160,24 @@ fn test_composing_arrays() {
         );
 
     assert(result.len() == 2, 'Invalid result length');
-    let first_call_result = *result.at(0);
-    assert(first_call_result.len() == 7, 'Invalid 1st result length');
-    assert(*first_call_result.at(0) == 'example_value', 'Invalid 1st result value');
-    let second_call_result = *result.at(1);
-    assert(second_call_result.len() == 1, 'Invalid 2nd result length');
-    assert(*second_call_result.at(0) == 15, 'Invalid 2nd result value');
+
+    match result.at(0) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_first_call_result) => {
+            let first_call_result = *_first_call_result;
+            assert(first_call_result.len() == 7, 'Invalid 1st result length');
+            assert(*first_call_result.at(0) == 'example_value', 'Invalid 1st result value');
+        }
+    }
+
+    match result.at(1) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_second_call_result) => {
+            let second_call_result = *_second_call_result;
+            assert(second_call_result.len() == 1, 'Invalid 2nd result length');
+            assert(*second_call_result.at(0) == 15, 'Invalid 2nd result value');
+        }
+    }
 }
 
 #[test]
@@ -187,15 +205,28 @@ fn test_dynamic_function() {
         );
 
     assert(result.len() == 2, 'Invalid result length');
-    let first_call_result = *result.at(0);
-    assert(first_call_result.len() == 2, 'Invalid 1st result length');
-    assert(
-        *first_call_result.at(0) == dummy.contract_address.into(), 'Invalid 1st result 1st value'
-    );
-    assert(*first_call_result.at(1) == ONE_SELECTOR, 'Invalid 1st result 2nd value');
-    let second_call_result = *result.at(1);
-    assert(second_call_result.len() == 1, 'Invalid 2nd result length');
-    assert(*second_call_result.at(0) == 1, 'Invalid 2nd result 1st value');
+
+    match result.at(0) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_first_call_result) => {
+            let first_call_result = *_first_call_result;
+            assert(first_call_result.len() == 2, 'Invalid 1st result length');
+            assert(
+                *first_call_result.at(0) == dummy.contract_address.into(),
+                'Invalid 1st result 1st value'
+            );
+            assert(*first_call_result.at(1) == ONE_SELECTOR, 'Invalid 1st result 2nd value');
+        }
+    }
+
+    match result.at(1) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_second_call_result) => {
+            let second_call_result = *_second_call_result;
+            assert(second_call_result.len() == 1, 'Invalid 2nd result length');
+            assert(*second_call_result.at(0) == 1, 'Invalid 2nd result 1st value');
+        }
+    }
 }
 
 use debug::PrintTrait;
@@ -225,12 +256,24 @@ fn test_conditional_execution() {
         );
 
     assert(result.len() == 2, 'Invalid result length');
-    let first_call_result = *result.at(0);
-    assert(first_call_result.len() == 1, 'Invalid 1st result length');
-    assert(*first_call_result.at(0) == 1, 'Invalid 1st result 1st value');
-    let second_call_result = *result.at(1);
-    assert(second_call_result.len() == 1, 'Invalid 2nd result length');
-    assert(*second_call_result.at(0) == 1, 'Invalid 2nd result 1st value');
+
+    match result.at(0) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_first_call_result) => {
+            let first_call_result = *_first_call_result;
+            assert(first_call_result.len() == 1, 'Invalid 1st result length');
+            assert(*first_call_result.at(0) == 1, 'Invalid 1st result 1st value');
+        }
+    }
+
+    match result.at(1) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_second_call_result) => {
+            let second_call_result = *_second_call_result;
+            assert(second_call_result.len() == 1, 'Invalid 2nd result length');
+            assert(*second_call_result.at(0) == 1, 'Invalid 2nd result 1st value');
+        }
+    }
 }
 
 
@@ -259,12 +302,24 @@ fn test_chained_calls() {
         );
 
     assert(result.len() == 2, 'Invalid result length');
-    let first_call_result = *result.at(0);
-    assert(first_call_result.len() == 1, 'Invalid 1st result length');
-    assert(*first_call_result.at(0) == 1, 'Invalid 1st result value');
-    let second_call_result = *result.at(1);
-    assert(second_call_result.len() == 1, 'Invalid 2nd result length');
-    assert(*second_call_result.at(0) == 3, 'Invalid 2nd result value');
+
+    match result.at(0) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_first_call_result) => {
+            let first_call_result = *_first_call_result;
+            assert(first_call_result.len() == 1, 'Invalid 1st result length');
+            assert(*first_call_result.at(0) == 1, 'Invalid 1st result value');
+        }
+    }
+
+    match result.at(1) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_second_call_result) => {
+            let second_call_result = *_second_call_result;
+            assert(second_call_result.len() == 1, 'Invalid 2nd result length');
+            assert(*second_call_result.at(0) == 3, 'Invalid 2nd result value');
+        }
+    }
 }
 
 
@@ -303,14 +358,31 @@ fn test_composed_calls() {
         );
 
     assert(result.len() == 3, 'Invalid result length');
-    let first_call_result = *result.at(0);
-    assert(first_call_result.len() == 1, 'Invalid 1st result length');
-    assert(*first_call_result.at(0) == 1, 'Invalid 1st result value');
-    let second_call_result = *result.at(1);
-    assert(second_call_result.len() == 1, 'Invalid 2nd result length');
-    assert(*second_call_result.at(0) == 3, 'Invalid 2nd result value');
 
-    let third_call_result = *result.at(2);
-    assert(third_call_result.len() == 1, 'Invalid 3d result length');
-    assert(*third_call_result.at(0) == 6, 'Invalid 3d result value');
+    match result.at(0) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_first_call_result) => {
+            let first_call_result = *_first_call_result;
+            assert(first_call_result.len() == 1, 'Invalid 1st result length');
+            assert(*first_call_result.at(0) == 1, 'Invalid 1st result value');
+        }
+    }
+
+    match result.at(1) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_second_call_result) => {
+            let second_call_result = *_second_call_result;
+            assert(second_call_result.len() == 1, 'Invalid 2nd result length');
+            assert(*second_call_result.at(0) == 3, 'Invalid 2nd result value');
+        }
+    }
+
+    match result.at(2) {
+        Result::Err => { panic_with_felt252('Call failed'); },
+        Result::Ok(_third_call_result) => {
+            let third_call_result = *_third_call_result;
+            assert(third_call_result.len() == 1, 'Invalid 3d result length');
+            assert(*third_call_result.at(0) == 6, 'Invalid 3d result value');
+        }
+    }
 }

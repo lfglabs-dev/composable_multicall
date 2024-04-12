@@ -7,6 +7,9 @@ enum Execution {
     Static,
     IfEqual: (usize, usize, felt252),
     IfNotEqual: (usize, usize, felt252),
+    Except: usize,
+    Catch: usize,
+    Then: usize,
 }
 
 #[derive(Debug, Drop, Serde)]
@@ -34,6 +37,8 @@ struct DynamicCall {
 
 #[starknet::interface]
 trait IComposableMulticall<TState> {
-    fn aggregate(self: @TState, calls: Array<DynamicCall>) -> Array<Span<felt252>>;
+    fn aggregate(
+        self: @TState, calls: Array<DynamicCall>
+    ) -> Array<Result<Span<felt252>, Array<felt252>>>;
 }
 

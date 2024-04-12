@@ -1,5 +1,6 @@
 #[starknet::contract]
 mod ComposableMulticall {
+    use core::result::ResultTrait;
     use core::option::OptionTrait;
     use core::traits::TryInto;
     use core::array::ArrayTrait;
@@ -19,28 +20,40 @@ mod ComposableMulticall {
 
     #[abi(embed_v0)]
     impl ComposableMulticallImpl of IComposableMulticall<ContractState> {
-        fn aggregate(self: @ContractState, calls: Array<DynamicCall>) -> Array<Span<felt252>> {
+        fn aggregate(
+            self: @ContractState, calls: Array<DynamicCall>
+        ) -> Array<Result<Span<felt252>, Array<felt252>>> {
             execute_multicall(calls.span())
         }
     }
 
+
+    fn unwrap_call_output(
+        call_outputs: @Array<Result<Span<felt252>, Array<felt252>>>, call_id: usize
+    ) -> @Span<felt252> {
+        match call_outputs.at(call_id) {
+            Result::Ok(valid_call_output) => { valid_call_output },
+            Result::Err(_) => { panic_with_felt252('failing call dep:') }
+        }
+    }
+
     fn build_input(
-        call_outputs: @Array<Span<felt252>>, mut dynamic_input: @DynamicFelt
+        call_outputs: @Array<Result<Span<felt252>, Array<felt252>>>, mut dynamic_input: @DynamicFelt
     ) -> felt252 {
         match dynamic_input {
             DynamicFelt::Hardcoded(value) => { *value },
             DynamicFelt::Reference((
                 call_id, felt_id
             )) => {
-                let call_output = *call_outputs.at(*call_id);
-                let felt = call_output.at(*felt_id);
-                *felt
+                let valid_call_output = unwrap_call_output(call_outputs, *call_id);
+                *(*valid_call_output).at(*felt_id)
             }
         }
     }
 
     fn build_inputs(
-        call_outputs: @Array<Span<felt252>>, mut dynamic_inputs: Span::<DynamicCalldata>
+        call_outputs: @Array<Result<Span<felt252>, Array<felt252>>>,
+        mut dynamic_inputs: Span::<DynamicCalldata>
     ) -> Array::<felt252> {
         let mut output: Array<felt252> = Default::default();
         loop {
@@ -51,15 +64,14 @@ mod ComposableMulticall {
                         DynamicCalldata::Reference((
                             call_id, felt_id
                         )) => {
-                            let call_output = *call_outputs.at(*call_id);
-                            let felt = call_output.at(*felt_id);
-                            output.append(*felt);
+                            let valid_call_output = unwrap_call_output(call_outputs, *call_id);
+                            output.append(*valid_call_output[*felt_id]);
                         },
                         DynamicCalldata::ArrayReference((
                             call_id, felt_id
                         )) => {
-                            let call_output = *call_outputs.at(*call_id);
-                            let arr_length = *call_output.at(*felt_id);
+                            let valid_call_output = unwrap_call_output(call_outputs, *call_id);
+                            let arr_length = *(*valid_call_output).at(*felt_id);
                             output.append(arr_length);
                             let felt_array_stop = *felt_id + (arr_length).try_into().unwrap();
                             let mut i = *felt_id;
@@ -68,7 +80,7 @@ mod ComposableMulticall {
                                     break;
                                 };
                                 i += 1;
-                                output.append(*call_output.at(i));
+                                output.append(*(*valid_call_output).at(i));
                             }
                         }
                     };
@@ -80,8 +92,10 @@ mod ComposableMulticall {
     }
 
 
-    fn execute_multicall(mut calls: Span<DynamicCall>) -> Array<Span<felt252>> {
-        let mut result: Array<Span<felt252>> = ArrayTrait::new();
+    fn execute_multicall(
+        mut calls: Span<DynamicCall>
+    ) -> Array<Result<Span<felt252>, Array<felt252>>> {
+        let mut results: Array<Result<Span<felt252>, Array<felt252>>> = ArrayTrait::new();
         let mut idx = 0;
         loop {
             match calls.pop_front() {
@@ -92,7 +106,8 @@ mod ComposableMulticall {
                             call_id, felt_id, value
                         )) => {
                             // if specified output felt is different from specified value, we skip that call
-                            if *(*result.at(*call_id)).at(*felt_id) != *value {
+                            let valid_call_output = unwrap_call_output(@results, *call_id);
+                            if *(*valid_call_output).at(*felt_id) != *value {
                                 continue;
                             }
                         },
@@ -100,37 +115,43 @@ mod ComposableMulticall {
                             call_id, felt_id, value
                         )) => {
                             // if specified output felt equals the specified value, we skip that call
-                            if (*result.at(*call_id)).at(*felt_id) == value {
+                            let valid_call_output = unwrap_call_output(@results, *call_id);
+                            if *(*valid_call_output).at(*felt_id) == *value {
                                 continue;
                             }
-                        }
-                    };
-                    match call_contract_syscall(
-                        build_input(@result, call.to).try_into().unwrap(),
-                        build_input(@result, call.selector),
-                        build_inputs(@result, call.calldata.span()).span()
-                    ) {
-                        Result::Ok(retdata) => {
-                            result.append(retdata);
-                            idx = idx + 1;
                         },
-                        Result::Err(mut revert_reason) => {
-                            let mut data = ArrayTrait::new();
-                            data.append('starknetid/multicall-failed');
-                            data.append(idx);
-                            loop {
-                                match revert_reason.pop_front() {
-                                    Option::Some(item) => { data.append(item); },
-                                    Option::None(()) => { break; },
-                                };
-                            };
-                            panic(data);
+                        Execution::Except(call_id) => {
+                            match results.at(*call_id) {
+                                Result::Err(_revert_reason) => {
+                                    let mut revert_reason = _revert_reason.span();
+                                    let mut data = ArrayTrait::new();
+                                    data.append('starknetid/multicall-failed');
+                                    data.append(idx);
+                                    loop {
+                                        match revert_reason.pop_front() {
+                                            Option::Some(item) => { data.append(*item); },
+                                            Option::None(()) => { break; },
+                                        };
+                                    };
+                                    panic(data);
+                                },
+                                Result::Ok(_) => {}
+                            }
                         },
+                        Execution::Catch(call_id) => {},
+                        Execution::Then(call_id) => {},
                     };
+                    let call_result = call_contract_syscall(
+                        build_input(@results, call.to).try_into().unwrap(),
+                        build_input(@results, call.selector),
+                        build_inputs(@results, call.calldata.span()).span()
+                    );
+                    results.append(call_result);
+                    idx = idx + 1;
                 },
                 Option::None(_) => { break; },
             };
         };
-        result
+        results
     }
 }
