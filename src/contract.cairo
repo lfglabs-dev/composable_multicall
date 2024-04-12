@@ -120,6 +120,16 @@ mod ComposableMulticall {
                                 continue;
                             }
                         },
+                        Execution::Catch(call_id) => {
+                            if results.at(*call_id).is_err() {
+                                continue;
+                            }
+                        },
+                        Execution::Then(call_id) => {
+                            if results.at(*call_id).is_ok() {
+                                continue;
+                            }
+                        },
                         Execution::Except(call_id) => {
                             match results.at(*call_id) {
                                 Result::Err(_revert_reason) => {
@@ -136,16 +146,6 @@ mod ComposableMulticall {
                                     panic(data);
                                 },
                                 Result::Ok(_) => {}
-                            }
-                        },
-                        Execution::Catch(call_id) => {
-                            if results.at(*call_id).is_err() {
-                                continue;
-                            }
-                        },
-                        Execution::Then(call_id) => {
-                            if results.at(*call_id).is_ok() {
-                                continue;
                             }
                         },
                     };
