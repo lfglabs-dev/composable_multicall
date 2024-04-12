@@ -91,6 +91,9 @@ mod ComposableMulticall {
         output
     }
 
+    fn skip_call(ref results: Array<Result<Span<felt252>, Array<felt252>>>) {
+        results.append(Result::Err(array!['starknetid/call-skipped']));
+    }
 
     fn execute_multicall(
         mut calls: Span<DynamicCall>
@@ -108,6 +111,7 @@ mod ComposableMulticall {
                             // if specified output felt is different from specified value, we skip that call
                             let valid_call_output = unwrap_call_output(@results, *call_id);
                             if *(*valid_call_output).at(*felt_id) != *value {
+                                skip_call(ref results);
                                 continue;
                             }
                         },
@@ -117,16 +121,19 @@ mod ComposableMulticall {
                             // if specified output felt equals the specified value, we skip that call
                             let valid_call_output = unwrap_call_output(@results, *call_id);
                             if *(*valid_call_output).at(*felt_id) == *value {
+                                skip_call(ref results);
                                 continue;
                             }
                         },
                         Execution::Catch(call_id) => {
-                            if results.at(*call_id).is_err() {
+                            if results.at(*call_id).is_ok() {
+                                skip_call(ref results);
                                 continue;
                             }
                         },
                         Execution::Then(call_id) => {
-                            if results.at(*call_id).is_ok() {
+                            if results.at(*call_id).is_err() {
+                                skip_call(ref results);
                                 continue;
                             }
                         },
