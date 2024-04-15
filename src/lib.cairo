@@ -37,8 +37,10 @@ struct DynamicCall {
 
 #[starknet::interface]
 trait IComposableMulticall<TState> {
-    fn aggregate(
+    fn raw_aggregate(
         self: @TState, calls: Array<DynamicCall>
     ) -> Array<Result<Span<felt252>, Array<felt252>>>;
+
+    fn aggregate(self: @TState, calls: Array<DynamicCall>) -> Array<Span<felt252>>;
 }
 

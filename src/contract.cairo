@@ -20,13 +20,30 @@ mod ComposableMulticall {
 
     #[abi(embed_v0)]
     impl ComposableMulticallImpl of IComposableMulticall<ContractState> {
-        fn aggregate(
+        fn raw_aggregate(
             self: @ContractState, calls: Array<DynamicCall>
         ) -> Array<Result<Span<felt252>, Array<felt252>>> {
             execute_multicall(calls.span())
         }
-    }
 
+        fn aggregate(self: @ContractState, calls: Array<DynamicCall>) -> Array<Span<felt252>> {
+            let mut results = execute_multicall(calls.span());
+            let mut output = ArrayTrait::new();
+            // filter Ok results
+            loop {
+                match results.pop_front() {
+                    Option::Some(call_output) => {
+                        match call_output {
+                            Result::Ok(valid_call_output) => { output.append(valid_call_output); },
+                            Result::Err(_) => { continue; }
+                        }
+                    },
+                    Option::None => { break; },
+                }
+            };
+            output
+        }
+    }
 
     fn unwrap_call_output(
         call_outputs: @Array<Result<Span<felt252>, Array<felt252>>>, call_id: usize
