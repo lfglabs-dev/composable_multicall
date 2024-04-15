@@ -17,7 +17,7 @@ mod ComposableMulticall {
         blacklisted: LegacyMap<ContractAddress, bool>,
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl ComposableMulticallImpl of IComposableMulticall<ContractState> {
         fn aggregate(self: @ContractState, calls: Array<DynamicCall>) -> Array<Span<felt252>> {
             execute_multicall(calls.span())
@@ -84,8 +84,6 @@ mod ComposableMulticall {
         let mut result: Array<Span<felt252>> = ArrayTrait::new();
         let mut idx = 0;
         loop {
-            // todo: remove in Cairo 2.4.0
-            let snapped_result = @result;
             match calls.pop_front() {
                 Option::Some(call) => {
                     match call.execution {
@@ -94,7 +92,7 @@ mod ComposableMulticall {
                             call_id, felt_id, value
                         )) => {
                             // if specified output felt is different from specified value, we skip that call
-                            if *(*snapped_result.at(*call_id)).at(*felt_id) != *value {
+                            if *(*result.at(*call_id)).at(*felt_id) != *value {
                                 continue;
                             }
                         },
@@ -102,7 +100,7 @@ mod ComposableMulticall {
                             call_id, felt_id, value
                         )) => {
                             // if specified output felt equals the specified value, we skip that call
-                            if *(*snapped_result.at(*call_id)).at(*felt_id) == *value {
+                            if (*result.at(*call_id)).at(*felt_id) == value {
                                 continue;
                             }
                         }

@@ -4,7 +4,7 @@ authors = ["th0rgal <thomas@starknet.id>"]
 version = "0.1.0"
 
 [dependencies]
-starknet = "2.3.1"
+starknet = "2.6.3"
 
 [[target.starknet-contract]]
 sierra = true
